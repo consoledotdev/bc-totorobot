@@ -1,0 +1,57 @@
+on: [push, pull_request]
+
+name: Lints
+
+jobs:
+    clippy:
+        name: Format + Clippy
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Setup rust toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: nightly
+                  override: true
+                  components: rustfmt, clippy
+
+            - name: cargo fmt
+              uses: actions-rs/cargo@v1
+              with:
+                  command: fmt
+                  args: --all -- --check
+
+            - name: cargo clippy
+              uses: actions-rs/cargo@v1
+              with:
+                  command: clippy
+                  args: -- -D warnings
+
+    tests:
+        name: Unit tests
+        needs: clippy
+        runs-on: ubuntu-latest
+        env:
+            TOTORO_MAILCHIMP_APIKEY: ${{ secrets.TOTORO_MAILCHIMP_APIKEY }}
+            TOTORO_MAILCHIMP_LIST_ID: ${{ secrets.TOTORO_MAILCHIMP_LIST_ID }}
+            # Placeholder only for Basecamp URL because a real call is not
+            # actually made in test mode
+            TOTORO_BASECAMP_BOTURL: example
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Setup rust toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: nightly
+                  override: true
+
+            - name: cargo test
+              uses: actions-rs/cargo@v1
+              with:
+                  command: test

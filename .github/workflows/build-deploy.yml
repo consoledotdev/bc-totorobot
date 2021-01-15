@@ -1,0 +1,125 @@
+# Matrix based on examples from:
+# https://github.com/svenstaro/miniserve/blob/master/.github/workflows/publish.yml
+
+name: Build and deploy to Azure
+
+on:
+    push:
+        tags:
+            - 'release-*'
+
+env:
+  AZURE_FUNCTIONAPP_NAME: bc-totorobot
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
+
+jobs:
+    build:
+        name: ${{ matrix.target }} on ${{ matrix.os }}
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                target:
+                    - x86_64-unknown-linux-musl
+                   #- x86_64-apple-darwin
+
+                include:
+                    - os: ubuntu-latest
+                      target: x86_64-unknown-linux-musl
+                      artifact_name: target/x86_64-unknown-linux-musl/release/totorobot
+                      release_name: linux-x86_64-musl
+                      build_with: musl
+                      build_command: docker run -v $PWD:/volume --rm -t clux/muslrust cargo build --release
+                      strip: true
+
+                   # - os: macos-latest
+                   #   target: x86_64-apple-darwin
+                   #   artifact_name: target/x86_64-apple-darwin/release/totorobot
+                   #   release_name: macos-x86_64
+                   #   build_with: nightly
+                   #   build_command: cargo build --release
+                   #   strip: true
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Setup Rust toolchain
+              uses: actions-rs/toolchain@v1
+              if: matrix.build_with == ('stable' || 'nightly')
+              with:
+                  toolchain: ${{ matrix.build_with }}
+                  target: ${{ matrix.target }}
+
+            - name: Set up muslrust container
+              uses: docker://clux/muslrust:nightly
+              if: matrix.build_with == 'musl'
+
+            - name: Build totorobot
+              run: ${{ matrix.build_command }}
+
+            - name: Copy binary to bin directory
+              run: |
+                mkdir bin
+                cp ${{ matrix.artifact_name }} bin/
+
+            - name: Compress binary
+              uses: svenstaro/upx-action@v2
+              with:
+                  file: bin/totorobot
+                  args: --lzma
+                  strip: ${{ matrix.strip }}
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v2
+              with:
+                  name: totorobot-${{ matrix.release_name }}
+                  path: |
+                    ${{ github.workspace}}
+                    !.git*
+                    !Cargo*
+                    !src/
+                    !target/
+
+            - name: Upload to release
+              uses: svenstaro/upload-release-action@v2
+              with:
+                  repo_token: ${{ secrets.GITHUB_TOKEN }}
+                  file: bin/totorobot
+                  asset_name: totorobot-${{ matrix.release_name }}
+                  tag: ${{ github.ref }}
+
+    azure-deploy:
+        name: Deploy to Azure
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Login via Azure CLI
+              uses: azure/login@v1
+              with:
+                  creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            - name: Download release artifact
+              uses: actions/download-artifact@v2
+              with:
+                  name: totorobot-linux-x86_64-musl
+
+            - name: Setup Bicep
+              uses: anthony-c-martin/setup-bicep@v0.1
+
+            - name: Build Bicep
+              run: bicep build main.bicep
+
+            - name: Deploy Azure resources
+              uses: azure/arm-deploy@v1
+              with:
+                  subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+                  resourceGroupName: bc-totorobot
+                  template: ./main.json
+                  parameters: TOTORO_MAILCHIMP_APIKEY=${{ secrets.TOTORO_MAILCHIMP_APIKEY }} TOTORO_MAILCHIMP_LIST_ID=${{ secrets.TOTORO_MAILCHIMP_LIST_ID }} TOTORO_BASECAMP_BOTURL=${{ secrets.TOTORO_BASECAMP_BOTURL }}
+
+            - name: Deploy Azure Function
+              uses: Azure/functions-action@v1
+              with:
+                  app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+                  package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+                  publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}

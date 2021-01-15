@@ -1,0 +1,14 @@
+# Rust builds
+/target
+
+# Mac cruft
+.DS_Store
+
+# Bicep generated files
+main.json
+
+# Azure functions
+local.settings.json
+
+# Totorobot
+totorobot
