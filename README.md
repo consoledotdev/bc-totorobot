@@ -45,6 +45,9 @@ Requirements:
   Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#v2)
 
 ```zsh
+# Create the local.settings.json file which will set the environment variables
+# Only required on a fresh clone when the file doesn't exist
+func azure functionapp fetch-app-settings bc-totorobot
 func start
 ```
 
