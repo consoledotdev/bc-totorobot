@@ -13,11 +13,3 @@ log = "^0.4.13"
 mailchimp = "^0.1.15"
 reqwest = { version = "^0.11.0", features = ["blocking", "json"] }
 rocket = "^0.4.6"
-# Add openssl-sys as a direct dependency so it can be cross compiled to
-# x86_64-unknown-linux-musl using the "vendored" feature below
-openssl-sys = "*"
-
-[features]
-# Force openssl-sys to staticly link in the openssl library. Necessary when
-# cross compiling to x86_64-unknown-linux-musl.
-vendored = ["openssl-sys/vendored"]
