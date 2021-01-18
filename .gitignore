@@ -1,5 +1,5 @@
 # Rust builds
-/target
+target/
 
 # Mac cruft
 .DS_Store
@@ -10,5 +10,5 @@ main.json
 # Azure functions
 local.settings.json
 
-# Totorobot
-totorobot
+# Deployed binaries directory
+bin/
