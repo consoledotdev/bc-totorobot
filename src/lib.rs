@@ -18,7 +18,7 @@ fn health_check() -> &'static str {
     "OK"
 }
 
-#[get("/post_mailchimp_stats")]
+#[post("/post_mailchimp_stats")]
 fn post_mailchimp_stats() -> Status {
     // Create API client
     // TODO: Might be better to try and return Status::InternalServerError
@@ -179,11 +179,12 @@ pub fn rocket() -> rocket::Rocket {
             .unwrap();
     }
 
-    rocket::custom(config).mount("/api", routes)
+    rocket::custom(config).mount("/", routes)
 }
 
 #[cfg(test)]
 mod test {
+    use std::env;
     use super::rocket;
     use rocket::http::Status;
     use rocket::local::Client;
@@ -191,30 +192,21 @@ mod test {
     #[test]
     fn health_check_ok() {
         let client = Client::new(rocket()).expect("valid rocket instance");
-        let mut response = client.get("/api/health_check").dispatch();
+        let mut response = client.get("/health_check").dispatch();
         assert_eq!(response.status(), Status::Ok);
         assert_eq!(response.body_string(), Some("OK".into()));
     }
 
     #[test]
-    fn health_check_404() {
-        let client = Client::new(rocket()).expect("valid rocket instance");
-        let response = client.get("/health_check").dispatch();
-        assert_eq!(response.status(), Status::NotFound);
-    }
-
-    #[test]
     fn post_mailchimp_stats_ok() {
+        // Ensure production environment variable is not set so messages are not
+        // accidentially posted to Basecamp
+        // TODO: Mock external API calls
+        env::remove_var("TOTORO_PRODUCTION");
+
         let client = Client::new(rocket()).expect("valid rocket instance");
-        let mut response = client.get("/api/post_mailchimp_stats").dispatch();
+        let mut response = client.post("/post_mailchimp_stats").dispatch();
         assert_eq!(response.status(), Status::Ok);
         assert_eq!(response.body_string(), None);
-    }
-
-    #[test]
-    fn post_mailchimp_stats_404() {
-        let client = Client::new(rocket()).expect("valid rocket instance");
-        let response = client.get("/post_mailchimp_stats").dispatch();
-        assert_eq!(response.status(), Status::NotFound);
     }
 }
