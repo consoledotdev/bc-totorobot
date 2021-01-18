@@ -184,10 +184,10 @@ pub fn rocket() -> rocket::Rocket {
 
 #[cfg(test)]
 mod test {
-    use std::env;
     use super::rocket;
     use rocket::http::Status;
     use rocket::local::Client;
+    use std::env;
 
     #[test]
     fn health_check_ok() {
