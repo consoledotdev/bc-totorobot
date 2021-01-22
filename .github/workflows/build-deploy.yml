@@ -43,6 +43,11 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v2
 
+            - name: Security audit
+              uses: actions-rs/audit-check@v1
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Setup Rust toolchain
               uses: actions-rs/toolchain@v1
               if: matrix.build_with == ('stable' || 'nightly')
