@@ -146,8 +146,6 @@ fn post_mailchimp_stats() -> ApiResponse {
                 content.push_str(&s);
             }
 
-            env::remove_var("TOTORO_PRODUCTION");
-
             // Only post to Basecamp if we are actually in production
             if env::var("TOTORO_PRODUCTION").is_ok() {
                 // Send it over to Basecamp
@@ -272,7 +270,6 @@ mod test {
     use super::rocket;
     use rocket::http::Status;
     use rocket::local::Client;
-    use std::env;
 
     #[test]
     fn health_check_ok() {
@@ -282,16 +279,5 @@ mod test {
         assert_eq!(response.body_string(), Some("OK".into()));
     }
 
-    #[test]
-    fn post_mailchimp_stats_ok() {
-        // Ensure production environment variable is not set so messages are not
-        // accidentially posted to Basecamp
-        // TODO: Mock external API calls
-        env::remove_var("TOTORO_PRODUCTION");
-
-        let client = Client::new(rocket()).expect("valid rocket instance");
-        let mut response = client.post("/post_mailchimp_stats").dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(response.body_string(), None);
-    }
+    // TODO: Test post_mailchimp_stats
 }
