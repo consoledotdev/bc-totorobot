@@ -188,7 +188,7 @@ fn post_mailchimp_stats() -> ApiResponse {
 
                     // Build response JSON
                     let response = AzureResponse {
-                        logs: logs,
+                        logs,
                         return_value: String::from("error"),
                     };
 
@@ -203,7 +203,7 @@ fn post_mailchimp_stats() -> ApiResponse {
 
                 // Build response JSON
                 let response = AzureResponse {
-                    logs: logs,
+                    logs,
                     return_value: String::from("ok"),
                 };
 
@@ -221,7 +221,7 @@ fn post_mailchimp_stats() -> ApiResponse {
 
             // Build response JSON
             let response = AzureResponse {
-                logs: logs,
+                logs,
                 return_value: String::from("error"),
             };
 
