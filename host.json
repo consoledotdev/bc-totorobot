@@ -7,8 +7,7 @@
   "customHandler": {
     "description": {
       "defaultExecutablePath": "bin/totorobot"
-    },
-    "enableForwardingHttpRequest": true
+    }
   },
   "logging": {
     "logLevel": {

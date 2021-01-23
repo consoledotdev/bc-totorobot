@@ -5,31 +5,70 @@
 
 #[macro_use]
 extern crate rocket;
+#[macro_use]
+extern crate rocket_contrib;
 
-use log::{error, info};
+use log::info;
 use mailchimp::{Lists, MailchimpApi};
 use rocket::config::{Config, Environment};
-use rocket::http::Status;
+use rocket::http::{ContentType, Status};
+use rocket::request::Request;
+use rocket::response;
+use rocket::response::{Responder, Response};
+use rocket_contrib::json::JsonValue;
 use std::collections::HashMap;
 use std::env;
+
+// AzureResponse
+// Function responses are formatted as key/value pairs
+// https://docs.microsoft.com/en-us/azure/azure-functions/functions-custom-handlers#response-payload
+struct AzureResponse {
+    logs: Vec<String>,
+    return_value: String,
+}
+
+impl AzureResponse {
+    fn to_json(&self) -> JsonValue {
+        json!({
+            "Logs": self.logs,
+            "ReturnValue": self.return_value,
+        })
+    }
+}
+
+// ApiResponse
+// If we just return JSON then every response will be HTTP 200 OK even if there
+// are errors. This allows setting the HTTP status code
+// From: https://stackoverflow.com/a/54867136/2183
+struct ApiResponse {
+    json: JsonValue,
+    status: Status,
+}
+
+impl<'r> Responder<'r> for ApiResponse {
+    fn respond_to(self, req: &Request) -> response::Result<'r> {
+        Response::build_from(self.json.respond_to(&req).unwrap())
+            .status(self.status)
+            .header(ContentType::JSON)
+            .ok()
+    }
+}
 
 #[get("/health_check")]
 fn health_check() -> &'static str {
     "OK"
 }
 
-#[post("/post_mailchimp_stats")]
-fn post_mailchimp_stats() -> Status {
+#[post("/post_mailchimp_stats", format = "json")]
+fn post_mailchimp_stats() -> ApiResponse {
+    let mut logs = Vec::new();
+
     // Create API client
-    // TODO: Might be better to try and return Status::InternalServerError
-    // rather than panic.
     let api_key = env::var("TOTORO_MAILCHIMP_APIKEY")
         .expect("TOTORO_MAILCHIMP_APIKEY not set");
     let api = MailchimpApi::new(&api_key);
 
     // Query the specific list
-    // TODO: Might be better to try and return Status::InternalServerError
-    // rather than panic.
     let lists = Lists::new(api);
     let list_id = env::var("TOTORO_MAILCHIMP_LIST_ID")
         .expect("TOTORO_MAILCHIMP_LIST_ID not set");
@@ -38,8 +77,6 @@ fn post_mailchimp_stats() -> Status {
     match r_list {
         Ok(list) => {
             // Get the stats
-            // TODO: Might be better to try and return Status::InternalServerError
-            // rather than panic.
             let stats = list.stats.as_ref().expect("No stats returned");
 
             info!("Raw stats: {:?}", stats);
@@ -109,14 +146,14 @@ fn post_mailchimp_stats() -> Status {
                 content.push_str(&s);
             }
 
+            env::remove_var("TOTORO_PRODUCTION");
+
             // Only post to Basecamp if we are actually in production
             if env::var("TOTORO_PRODUCTION").is_ok() {
                 // Send it over to Basecamp
                 // https://github.com/basecamp/bc3-api/blob/master/sections/chatbots.md#create-a-line
                 info!("Sending Basecamp: {:?}", content);
 
-                // TODO: Might be better to try and return Status::InternalServerError
-                // rather than panic.
                 let basecamp_bot_url = env::var("TOTORO_BASECAMP_BOTURL")
                     .expect("TOTORO_BASECAMP_BOTURL not set");
 
@@ -124,8 +161,6 @@ fn post_mailchimp_stats() -> Status {
                 json_body.insert("content", content);
 
                 // Use blocking because rocket is itself blocking
-                // TODO: Might be better to try and return Status::InternalServerError
-                // rather than panic.
                 let client = reqwest::blocking::Client::new();
                 let resp = client
                     .post(&basecamp_bot_url)
@@ -134,20 +169,69 @@ fn post_mailchimp_stats() -> Status {
                     .expect("Reqwest client error");
 
                 if resp.status().is_success() {
-                    info!("All ok");
-                    Status::Ok
+                    // Build response JSON
+                    let response = AzureResponse {
+                        logs: logs,
+                        return_value: String::from("ok"),
+                    };
+
+                    // Return response
+                    ApiResponse {
+                        json: response.to_json(),
+                        status: Status::Ok,
+                    }
                 } else {
-                    error!("Error posting to Basecamp: {:?}", resp.status());
-                    Status::InternalServerError
+                    // Log errors
+                    let error = format!(
+                        "Error posting to Basecamp: {:?}",
+                        resp.status()
+                    );
+                    logs.push(error);
+
+                    // Build response JSON
+                    let response = AzureResponse {
+                        logs: logs,
+                        return_value: String::from("error"),
+                    };
+
+                    // Return response
+                    ApiResponse {
+                        json: response.to_json(),
+                        status: Status::InternalServerError,
+                    }
                 }
             } else {
                 info!("Would have posted to Basecamp: {:?}", content);
-                Status::Ok
+
+                // Build response JSON
+                let response = AzureResponse {
+                    logs: logs,
+                    return_value: String::from("ok"),
+                };
+
+                // Return response
+                ApiResponse {
+                    json: response.to_json(),
+                    status: Status::Ok,
+                }
             }
         }
         Err(e) => {
-            error!("Error Mailchimp get_list_info: {:?}", e);
-            Status::InternalServerError
+            // Log errors
+            let error = format!("Error getting Mailchimp list info: {:?}", e);
+            logs.push(error);
+
+            // Build response JSON
+            let response = AzureResponse {
+                logs: logs,
+                return_value: String::from("error"),
+            };
+
+            // Return response
+            ApiResponse {
+                json: response.to_json(),
+                status: Status::InternalServerError,
+            }
         }
     }
 }
@@ -174,6 +258,7 @@ pub fn rocket() -> rocket::Rocket {
             .unwrap();
     } else {
         config = Config::build(Environment::Development)
+            .address("127.0.0.1")
             .port(port)
             .log_level(rocket::config::LoggingLevel::Debug)
             .unwrap();
