@@ -169,7 +169,7 @@ fn post_mailchimp_stats() -> ApiResponse {
                 if resp.status().is_success() {
                     // Build response JSON
                     let response = AzureResponse {
-                        logs: logs,
+                        logs,
                         return_value: String::from("ok"),
                     };
 
