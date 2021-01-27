@@ -9,7 +9,7 @@ path = "src/main.rs"
 name = "totorobot"
 
 [dependencies]
-log = "^0.4.13"
+log = "^0.4.14"
 mailchimp = "^0.1.15"
 reqwest = { version = "^0.11.0", features = ["blocking", "json"] }
 rocket = "^0.4.6"
