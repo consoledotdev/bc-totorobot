@@ -10,6 +10,7 @@ extern crate rocket_contrib;
 
 use log::info;
 use mailchimp::{Lists, MailchimpApi};
+use num_format::{Locale, ToFormattedString};
 use rocket::config::{Config, Environment};
 use rocket::http::{ContentType, Status};
 use rocket::request::Request;
@@ -88,8 +89,8 @@ fn post_mailchimp_stats() -> ApiResponse {
             // The number of active members in the list
             if let Some(member_count) = stats.member_count {
                 let s = format!(
-                    "<li><strong>Active subscribers:</strong> {:.0}</li>",
-                    member_count
+                    "<li><strong>Active subscribers:</strong> {}</li>",
+                    member_count.to_formatted_string(&Locale::en)
                 );
                 content.push_str(&s);
             }

@@ -28,7 +28,7 @@ cargo run
 to start the web server. Issue requests to the endpoints e.g.:
 
 ```zsh
-curl -v http://localhost:3000/api/post_mailchimp_stats
+curl -i -X POST -H "Content-Type:application/json" -d "{}" http://localhost:3000/post_mailchimp_stats
 ```
 
 ### Unit tests
