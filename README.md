@@ -65,6 +65,9 @@ curl -i -X POST -H "Content-Type:application/json" -d "{}" http://localhost:7071
 
 ## Deployment
 
+Create a new tag with the name format `release-vx.y.z` where x.y.z is a
+semantic versioning formatted version string e.g. `release-v0.1.4`
+
 [Azure
 uses](https://docs.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-other?tabs=rust%2Clinux#compile-the-custom-handler-for-azure)
 the `x86_64-unknown-linux-musl` platform. Builds are done through [a dedicated
