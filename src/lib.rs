@@ -84,7 +84,7 @@ fn post_mailchimp_stats() -> ApiResponse {
 
             // Construct the Campfire bot text
             let mut content =
-                String::from("<strong>Mailchimp Stats (Rust)</strong><ul>");
+                String::from("<strong>Mailchimp Stats</strong><ul>");
 
             // The number of active members in the list
             if let Some(member_count) = stats.member_count {
