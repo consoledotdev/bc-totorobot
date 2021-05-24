@@ -13,7 +13,7 @@ log = "^0.4.14"
 mailchimp = "^0.1.15"
 num-format = "^0.4.0"
 reqwest = { version = "^0.11.3", features = ["blocking", "json"] }
-rocket = "^0.4.9"
+rocket = "^0.4.10"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
