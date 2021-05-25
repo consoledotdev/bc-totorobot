@@ -123,7 +123,7 @@ jobs:
                   parameters: TOTORO_MAILCHIMP_APIKEY=${{ secrets.TOTORO_MAILCHIMP_APIKEY }} TOTORO_MAILCHIMP_LIST_ID=${{ secrets.TOTORO_MAILCHIMP_LIST_ID }} TOTORO_BASECAMP_BOTURL=${{ secrets.TOTORO_BASECAMP_BOTURL }}
 
             - name: Deploy Azure Function
-              uses: Azure/functions-action@v1.3.2
+              uses: Azure/functions-action@v1.4.0
               with:
                   app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
                   package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
