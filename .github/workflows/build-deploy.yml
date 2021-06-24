@@ -115,7 +115,7 @@ jobs:
               run: bicep build main.bicep
 
             - name: Deploy Azure resources
-              uses: azure/arm-deploy@1.0.3
+              uses: azure/arm-deploy@1.0.4
               with:
                   subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
                   resourceGroupName: bc-totorobot
